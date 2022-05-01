@@ -54,9 +54,10 @@ def requisition(newSock, address):
 
                 if (file):
                     ans = data_process(file)
+
                     # Send the same message received to client side
                     newSock.send(
-                        bytes("Most common words from file: " + json.dumps(dict(ans)), encoding='utf-8'))
+                        bytes("Most common words from file: " + str(ans), encoding='utf-8'))
             except Exception as error:
                 newSock.send(bytes(str(error), encoding='utf-8'))
 
@@ -69,7 +70,6 @@ def interface():
     print("Accepting Connections...")
 
     while True:
-        print(inputs)
         r, escrita, excecao = select.select(inputs, [], [])
 
         for ready in r:
@@ -93,7 +93,7 @@ def interface():
 
 def data_acess(file_name):
     try:
-        file = open(file_name, "r")
+        file = open(file_name, "r", encoding='utf-8')
         return file
     except FileNotFoundError as ferror:
         raise FileNotFoundError(ferror)
@@ -101,6 +101,9 @@ def data_acess(file_name):
 
 def data_process(file):
     text = file.read()
+
+    # process text
+    text = text.lower()
 
     word_dict = {}
     for word in text.split():
@@ -118,6 +121,7 @@ def data_process(file):
         counter += 1
         if (counter == DICT_RETURN_SIZE):
             break
+    
     return ans
 
 
