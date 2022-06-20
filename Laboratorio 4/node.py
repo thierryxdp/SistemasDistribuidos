@@ -1,3 +1,32 @@
+''' 
+	TODO: Aquivo teste para indicar em qual nó começar a eleição.
+	Então, por exemplo, a partir desse arquivo teste, teremos uma conexão
+	cliente no Nó indicado a começar a eleição. Esse cliente chamará, por rpc,
+	o método do Nó que inicia a eleição.
+
+	Criar uma máquina de estados dentro do No para que saiba se está em processo
+	de eleição, se já foi visitado por pobre, se pode mandar o ecko visto que
+	todos os filhos já mandaram o echo, etc.
+
+	Colocar as conexões de cada nó dentro da classe Nó, para que ele saiba
+	como acessar os vizinhos.
+
+	No arquivo de teste, será possível apenas começar eleição quando todos
+	os nós estiverem conectados. Caso contrário, não será  possível começar
+	a eleição.
+
+	ir removendo os arquivos em parte. Na real, é melhor criar uma branch
+	nova excluindo o uso de arquivos.
+
+	Só responde echo quando todos os vizinhos já tiverem respondido, seja
+	por ack ou por echo.
+
+	Os nós vizinhos não terão input. Eles terão apenas o log do que cada um
+	está printando. Assim facilita a construção, deixando os inputs apenas
+	no arquivo de teste. 
+'''
+
+
 import rpyc
 import sys
 import select
@@ -23,7 +52,7 @@ nodes = {
 		'h': {'SERVER': 'localhost', 'PORT': 6007, 'NEIGHBORS': ['g', 'i']},
 		'i': {'SERVER': 'localhost', 'PORT': 6008, 'NEIGHBORS': ['h', 'f']},
 		'j': {'SERVER': 'localhost', 'PORT': 6009, 'NEIGHBORS': ['a', 'g']}
-		}
+		} 
 
 '''nodes = {
 		'a': {'SERVER': 'localhost', 'PORT': 6000, 'NEIGHBORS': ['b', 'c']}, 
@@ -32,16 +61,25 @@ nodes = {
 		'd': {'SERVER': 'localhost', 'PORT': 6003, 'NEIGHBORS': ['b']}
 		} '''
 
+'''nodes = {
+		'a': {'SERVER': 'localhost', 'PORT': 6000, 'NEIGHBORS': ['b']}, 
+		'b': {'SERVER': 'localhost', 'PORT': 6001, 'NEIGHBORS': ['a']},
+		}'''		
 
 MAX_RAND_VALUE = 1000
 
+connections = []
 # classe que implementa o servico de echo
 class Node(rpyc.Service):
 	ID = randint(0,MAX_RAND_VALUE)
 	parent = ''
-	
-	def exposed_probe(self, parent_node, this_node):
+	received_echo_child = 0
 
+	def exposed_probe(self, parent_node, this_node):
+		
+		print("Probe - Node ID: " + str(self.ID))
+		print("Type a message ('end' to terminate program): ")
+		
 		try:
 			f = open("visited.txt", "r+")
 			lines = f.read()
@@ -85,6 +123,9 @@ class Node(rpyc.Service):
 	
 	def exposed_echo(self, this_node, child_node, value):
 
+		print("Echo - Node ID: " + str(self.ID))
+		print("Type a message ('end' to terminate program): ")
+
 		max_value = self.ID
 		node = this_node
 		if value > self.ID:
@@ -105,16 +146,28 @@ class Node(rpyc.Service):
 		except:
 			f = open("leader.txt", "w")
 			f.write(node + " " + str(max_value))
-			f.close()	
+			f.close()
+		
+		self.received_echo_child = self.received_echo_child + 1
+		
+		if (this_node == child_node): # sou a raiz!!
+			neighbors = nodes[this_node]['NEIGHBORS']
+			number_of_childs = len(neighbors)
+			if (self.received_echo_child < number_of_childs):
+				# expose leader
+				print("blalba")
+	
 
 def iniciaConexoes(node):
 	conns = []
-
+	global connections
 	# pega vizinhos
 	neighbors = nodes[node]['NEIGHBORS']
 	for ngh in neighbors:
 		conn = [ngh, rpyc.connect(nodes[ngh]['SERVER'], nodes[ngh]['PORT'])]
 		conns.append(conn)
+	
+	connections = conns
 	return conns
 
 def fazRequisicoes(node, conns):
