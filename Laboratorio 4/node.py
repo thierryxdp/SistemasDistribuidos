@@ -1,3 +1,32 @@
+''' 
+	TODO: Aquivo teste para indicar em qual nó começar a eleição.
+	Então, por exemplo, a partir desse arquivo teste, teremos uma conexão
+	cliente no Nó indicado a começar a eleição. Esse cliente chamará, por rpc,
+	o método do Nó que inicia a eleição.
+
+	Criar uma máquina de estados dentro do No para que saiba se está em processo
+	de eleição, se já foi visitado por pobre, se pode mandar o ecko visto que
+	todos os filhos já mandaram o echo, etc.
+
+	Colocar as conexões de cada nó dentro da classe Nó, para que ele saiba
+	como acessar os vizinhos.
+
+	No arquivo de teste, será possível apenas começar eleição quando todos
+	os nós estiverem conectados. Caso contrário, não será  possível começar
+	a eleição.
+
+	ir removendo os arquivos em parte. Na real, é melhor criar uma branch
+	nova excluindo o uso de arquivos.
+
+	Só responde echo quando todos os vizinhos já tiverem respondido, seja
+	por ack ou por echo.
+
+	Os nós vizinhos não terão input. Eles terão apenas o log do que cada um
+	está printando. Assim facilita a construção, deixando os inputs apenas
+	no arquivo de teste. 
+'''
+
+
 import rpyc
 
 from rpyc.utils.server import ThreadedServer
