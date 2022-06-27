@@ -1,5 +1,5 @@
 ''' 
-	TODO: Aquivo teste para indicar em qual nó começar a eleição.
+	DONE: Aquivo teste para indicar em qual nó começar a eleição.
 	Então, por exemplo, a partir desse arquivo teste, teremos uma conexão
 	cliente no Nó indicado a começar a eleição. Esse cliente chamará, por rpc,
 	o método do Nó que inicia a eleição.
@@ -26,7 +26,6 @@
 	no arquivo de teste. 
 '''
 
-
 import rpyc
 
 from rpyc.utils.server import ThreadedServer
@@ -38,7 +37,7 @@ from random import randint
 from graph import getNodeInput, getPort, getServer, startClientConnections
 from graph import getNumberOfNeighbors, startAllServerOtherNodesConnections, Status
 
-MAX_RAND_VALUE = 1000
+MAX_RAND_VALUE = 100000
 
 id = randint(0,MAX_RAND_VALUE)
 parent = ''
@@ -57,6 +56,8 @@ class Node(rpyc.Service):
 		global returns
 		
 		if (status == Status.FREE):
+			printElectionStarted(id, calling_node, this_node)
+			
 			status = Status.ELECTION
 			parent = calling_node
 			returns += 1
@@ -71,11 +72,13 @@ class Node(rpyc.Service):
 				conn[1].close()
 
 		elif (status == Status.ELECTION and returns < getNumberOfNeighbors(this_node)):
+			printSendingACK(calling_node, this_node)
 			conn = rpyc.connect(getServer(calling_node), getPort(calling_node))
 			conn.root.exposed_ack(this_node)
 			conn.close()
 		
 		else:
+			printSendingEcho(this_node, max_value)
 			conn = rpyc.connect(getServer(parent), getPort(parent))
 			conn.root.exposed_echo(parent, this_node, max_value)
 			conn.close()
@@ -83,6 +86,7 @@ class Node(rpyc.Service):
 			resetValues()
 
 	def exposed_ack(self, node):
+		printReceivedACK(node)
 		global returns
 		returns += 1
 
@@ -91,12 +95,15 @@ class Node(rpyc.Service):
 		global max_value
 		global leader
 
+		printReceivedEcho(this_node, value)
+
 		returns += 1
 		if (value > max_value):
 			max_value = value
 			leader = child_node
 
 		if (returns == getNumberOfNeighbors(this_node)):
+			printSendingEcho(this_node, max_value)
 			conn = rpyc.connect(getServer(parent), getPort(parent))
 			conn.root.exposed_echo(parent, this_node, max_value)
 			conn.close()
@@ -110,13 +117,15 @@ class Node(rpyc.Service):
 		status = Status.ELECTION
 
 		conns = startClientConnections(this_node)
-
+		
+		printElectionStarted(id, "raiz", this_node)
+		
 		for conn in conns:
 			conn[1].root.exposed_probe(this_node, conn[0])
 		
 		for conn in conns:
 			conn[1].close()
-		
+			
 		printElectionResult(leader, max_value)
 
 		conns = startAllServerOtherNodesConnections(this_node)
@@ -133,10 +142,34 @@ class Node(rpyc.Service):
 		printElectionResult(node_leader, value_leader)
 		
 def printElectionResult(node_leader, value_leader):
-	print("------ Election Ended ------")
+	print("Election ended with:")
 	print("leader: " + str(node_leader))
 	print("max value: " + str(value_leader))
-	print("------ Election Ended ------")
+	print("------- Election Ended -------")
+
+def printElectionStarted(node_id, calling_node, this_node):
+	print("------ Election Started ------")
+	print("ID Node: " + str(node_id))
+	print("Node: " + str(this_node) + " received probe from Node: " + str(calling_node))
+	print("Parent Node: " + str(calling_node))
+	print("")
+
+def printSendingEcho(this_node, max_value):
+	print("Node: " + str(this_node) + " sending echo with value: " + str(max_value))
+	print("")
+
+def printReceivedEcho(this_node, value):
+	print("Node: " + str(this_node))
+	print("Received ECHO with value: " + str(value))
+	print("")
+
+def printSendingACK(calling_node, this_node):
+	print("Node: " + str(this_node) + " sending ack to Node: " + str(calling_node))
+	print()
+
+def printReceivedACK(node):
+	print("Received ACK from Node: " + str(node))
+	print()
 
 def resetValues():
 	global id
