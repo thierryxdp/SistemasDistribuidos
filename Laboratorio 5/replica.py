@@ -72,10 +72,13 @@ def get_primary_copy():
         
 def att_global_history(pc_global_history):
     global global_history
+    global X
     global_history = []
     for update in pc_global_history.strip("][").split(", "):
         update = update.strip("\'")
         global_history.append(update)
+    last_update = global_history[-1].split(" ")
+    X = int(last_update[5])
     
 def requisition(newSock, address):
 
